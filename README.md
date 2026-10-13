@@ -18,6 +18,46 @@ Every 30 minutes during work hours, a background job on your Mac:
 
 Each row shows who, where, a one-line summary, when, and a link to the message.
 
+## Set up with an agent
+
+Paste this into Claude Code (or another coding agent) and it will install and
+configure everything, asking you only what it needs:
+
+```text
+Set up slack-inbox for me: https://github.com/JewelsHovan/slack-inbox
+
+1. Check prerequisites: macOS, Claude Code installed (`claude --version`), git.
+   Clone the repo to a folder I choose (default ~/slack-inbox) and read README.md
+   and prompt.md before changing anything.
+2. Connect Slack. It must be logged in through Claude Code's Slack plugin,
+   because the scheduled job reuses that login. In the clone, run
+   `claude plugin install slack@claude-plugins-official --scope project`.
+   If Slack tools (mcp__plugin_slack_slack__*) are available in your session,
+   call the Slack authenticate tool, give me the URL, and tell me to pick my
+   workspace and click Allow. If my browser then shows "localhost refused to
+   connect", ask me to paste that page's URL and complete the login with it.
+   If you have no Slack tools (other agent, or the plugin needs a restart), ask
+   me to run `claude` in the clone, type "what Slack channels am I in?", and
+   finish the login; wait until I confirm.
+3. Ask me, in one short message, how I want it configured, offering these
+   defaults: work days Mon-Fri, hours 8-18, refresh every 30 min, look back
+   7 days, extra keywords to watch (none), and anything I want triaged
+   differently (people or bots to always treat as important or as low
+   priority, extra sections).
+4. Run `./install.sh` (add `INTERVAL_MIN=<n>` if I chose a different interval).
+   Then apply my answers to ~/.slack-inbox/config.env. For triage changes,
+   edit prompt.md in the clone, keeping its rules and the RESULT line contract
+   intact, and run `./install.sh` again to apply it.
+5. Run `slack-inbox --now` (or ~/bin/slack-inbox --now) and confirm the last
+   line of ~/Library/Logs/slack-inbox.log starts with "ok: canvas=updated".
+   If it says FAIL, read ~/.slack-inbox/last-run.txt, fix the cause, and retry.
+6. Tell me the canvas ID from config.env, that the canvas is titled
+   "Slack Inbox" in Slack, what it found, and how to change settings later.
+
+Rules: never send Slack messages, reactions, or create canvases yourself beyond
+what install.sh does. Never print tokens or environment variables.
+```
+
 ## Requirements
 
 - macOS (scheduling uses `launchd`)
