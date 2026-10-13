@@ -41,6 +41,12 @@ install -m 755 "$SRC/run.sh" "$BIN"
 
 if [ ! -f "$INBOX_HOME/config.env" ]; then
   if [ -z "${SLACK_USER_ID:-}" ] || [ -z "${CANVAS_ID:-}" ]; then
+    # Same rule as run.sh: use the Claude subscription, not an API key.
+    if [ "${AUTH:-subscription}" != "api" ]; then
+      unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
+      "$CLAUDE_BIN" auth status 2>/dev/null | grep -q '"authMethod": "claude.ai"' || {
+        echo "Not logged in to a Claude subscription. Run: claude auth login (or AUTH=api ./install.sh)" >&2; exit 1; }
+    fi
     echo "First install: asking Claude to find your Slack user ID and create the canvas..."
     S=mcp__plugin_slack_slack
     if [ -n "${CANVAS_ID:-}" ]; then
@@ -74,6 +80,7 @@ END_HOUR=18
 MODEL=claude-sonnet-5-5
 KEYWORDS=""                # extra words to watch, comma-separated, e.g. "Alex,launch,billing"
 INTERVAL_MIN=30            # minutes between runs; re-run ./install.sh after changing
+AUTH=${AUTH:-subscription}  # subscription (claude.ai login) or api (ANTHROPIC_API_KEY)
 CLAUDE_BIN=$CLAUDE_BIN
 EOF
   echo "Wrote $INBOX_HOME/config.env"

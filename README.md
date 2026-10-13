@@ -26,7 +26,9 @@ configure everything, asking you only what it needs:
 ```text
 Set up slack-inbox for me: https://github.com/JewelsHovan/slack-inbox
 
-1. Check prerequisites: macOS, Claude Code installed (`claude --version`), git.
+1. Check prerequisites: macOS, Claude Code installed (`claude --version`), git,
+   and a Claude Pro/Max login: `env -u ANTHROPIC_API_KEY claude auth status`
+   must show "authMethod": "claude.ai" (if not, ask me to run `claude auth login`).
    Clone the repo to a folder I choose (default ~/slack-inbox) and read README.md
    and prompt.md before changing anything.
 2. Connect Slack. It must be logged in through Claude Code's Slack plugin,
@@ -61,7 +63,7 @@ what install.sh does. Never print tokens or environment variables.
 ## Requirements
 
 - macOS (scheduling uses `launchd`)
-- [Claude Code](https://claude.com/claude-code), logged in
+- [Claude Code](https://claude.com/claude-code), logged in with a Claude Pro or Max subscription (or an API key, see `AUTH`)
 - A Slack workspace that allows the Claude app, on a plan with canvases
 
 ## Setup
@@ -111,6 +113,7 @@ the new values.
 | `KEYWORDS` | empty | Extra words to watch, comma-separated: your first name, a project, a client. |
 | `MODEL` | `claude-sonnet-5-5` | Model that does the triage. |
 | `INTERVAL_MIN` | `30` | Minutes between runs. Re-run `./install.sh` after changing it. |
+| `AUTH` | `subscription` | `subscription` uses your Claude Pro/Max login. `api` bills `ANTHROPIC_API_KEY` instead. |
 
 **Change how it triages.** The whole job is one prompt, [`prompt.md`](prompt.md):
 what to collect, what counts as "handled", the classification rules, and the
@@ -152,8 +155,13 @@ launchd (every 30 min)
 - **Honest status.** A run counts as successful only if the canvas update went
   through. Anything else is logged as `FAIL` with the reason in
   `last-run.txt`.
-- **Cost.** Each run is a short Sonnet session that counts toward your Claude
-  usage. Runs outside work hours exit before calling Claude.
+- **Runs on your Claude subscription.** An `ANTHROPIC_API_KEY` in your
+  environment normally outranks your claude.ai login and would bill the API.
+  The job removes it before calling Claude and refuses to run unless
+  `claude auth status` reports a claude.ai login. It never falls back to the
+  API by surprise. Set `AUTH=api` if you want API billing. Each run is a short
+  Sonnet session that counts toward your plan's usage. Runs outside work hours
+  exit before calling Claude.
 
 ## Troubleshooting
 
@@ -162,6 +170,7 @@ launchd (every 30 min)
 | Canvas says "Nothing here." everywhere | Nothing pinged you in the window. Try `LOOKBACK_OVERRIDE=336 slack-inbox --now`. |
 | `FAIL` in the log, last run says Slack tools are missing | Run `./install.sh` again. It registers the Slack plugin for `~/.slack-inbox`. If it still fails, open `claude` and redo the Slack login. |
 | Nothing happens on schedule | The Mac was asleep, or it's outside `WORK_DAYS` / hours. Check `launchctl print gui/$(id -u)/dev.slack-inbox`. |
+| `FAIL not logged in to a Claude subscription` | Run `claude auth login` and pick your Claude account, or set `AUTH=api` in `config.env`. |
 | `slack-inbox: command not found` | Add `~/bin` to your `PATH`, or run `~/bin/slack-inbox`. |
 
 ## Limits

@@ -28,6 +28,17 @@ if [ "${1:-}" != "--now" ]; then
   if [ "$hour" -lt "$START_HOUR" ] || [ "$hour" -ge "$END_HOUR" ]; then exit 0; fi
 fi
 
+# Bill the Claude subscription, not the API: an API key in the environment
+# outranks the claude.ai login, so drop it unless config.env opts in (AUTH=api).
+AUTH="${AUTH:-subscription}"
+if [ "$AUTH" != "api" ]; then
+  unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
+  if ! "$CLAUDE_BIN" auth status 2>/dev/null | grep -q '"authMethod": "claude.ai"'; then
+    log "FAIL not logged in to a Claude subscription; run: claude auth login (or set AUTH=api)"
+    exit 1
+  fi
+fi
+
 # One run at a time; a lock older than 30 minutes is from a crashed run.
 LOCK="$INBOX_HOME/.lock"
 if ! mkdir "$LOCK" 2>/dev/null; then
@@ -57,7 +68,7 @@ prompt=$(sed \
 S=mcp__plugin_slack_slack
 allowed="${S}__slack_search_public_and_private,${S}__slack_read_channel,${S}__slack_read_thread,${S}__slack_read_canvas,${S}__slack_update_canvas"
 
-log "start (model=$MODEL lookback=${LOOKBACK_HOURS}h)"
+log "start (auth=$AUTH model=$MODEL lookback=${LOOKBACK_HOURS}h)"
 out="$INBOX_HOME/last-run.txt"
 cd "$INBOX_HOME"
 set +e
